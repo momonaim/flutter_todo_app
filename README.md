@@ -25,7 +25,7 @@ Supports both **desktop (Windows/Linux/macOS)** and **mobile (Android/iOS)** pla
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/flutter_todo_app.git
+git clone https://github.com/momonaim/flutter_todo_app.git
 cd flutter_todo_app
 ```
 

@@ -3,10 +3,8 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:intl/intl.dart';
-import 'package:timezone/timezone.dart' as tz;
-import 'package:todo_app/main.dart';
+import 'package:todo_app/utils/notification_helper.dart';
 import '../db/database_helper.dart';
 import '../models/todo.dart';
 
@@ -29,8 +27,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadTodos();
-    _showPendingTasksNotification(); // immédiat à l'ouverture
-    scheduleDailyReminder(); // ⏰ tous les jours à 23h
+    NotifHelper.showPendingTasksNotification(selectedDate);
+    NotifHelper.scheduleDailyReminder();
   }
 
   Future<void> _loadTodos() async {
@@ -131,68 +129,6 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() => selectedDate = picked);
       _loadTodos();
     }
-  }
-
-  Future<void> _showPendingTasksNotification() async {
-    final dateStr = DateFormat('yyyy-MM-dd').format(selectedDate);
-    final todos = await _dbHelper.getTodosByDate(dateStr);
-    final pendingCount = todos.where((t) => !t.isDone).length;
-
-    if (pendingCount == 0) return;
-
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-        AndroidNotificationDetails(
-      'daily_reminder_channel',
-      'Daily Reminders',
-      channelDescription: 'Notification for today\'s tasks',
-      importance: Importance.max,
-      priority: Priority.high,
-      ticker: 'ticker',
-    );
-
-    const NotificationDetails platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
-
-    await flutterLocalNotificationsPlugin.show(
-      0,
-      'Tâches du jour',
-      'Tu as $pendingCount tâche(s) à faire aujourd\'hui.',
-      platformChannelSpecifics,
-    );
-  }
-
-  Future<void> scheduleDailyReminder() async {
-    const androidDetails = AndroidNotificationDetails(
-      'daily_reminder_channel',
-      'Daily Reminders',
-      channelDescription: 'Rappel quotidien à 23h',
-      importance: Importance.max,
-      priority: Priority.high,
-    );
-
-    const notificationDetails = NotificationDetails(android: androidDetails);
-
-    await flutterLocalNotificationsPlugin.zonedSchedule(
-      1,
-      'Rappel quotidien',
-      'Vérifie si tu as terminé toutes tes tâches !',
-      _nextInstanceOf23h(),
-      notificationDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents:
-          DateTimeComponents.time, // 📅 Répéter chaque jour
-    );
-  }
-
-  tz.TZDateTime _nextInstanceOf23h() {
-    final now = tz.TZDateTime.now(tz.local);
-    final scheduled = tz.TZDateTime(tz.local, now.year, now.month, now.day, 23);
-
-    return scheduled.isBefore(now)
-        ? scheduled.add(const Duration(days: 1))
-        : scheduled;
   }
 
   @override
